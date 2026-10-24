@@ -2226,19 +2226,6 @@ class _ScreenHistoryRowState extends State<_ScreenHistoryRow> {
   }
 }
 
-class _ImportantNoteBox extends StatelessWidget {
-  final RitmPalette palette;
-
-  const _ImportantNoteBox({required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-
-    );
-  }
-}
-
 // ============================================================================
 // РАЗДЕЛ 5: МОДАЛЬНОЕ ОКНО «НОВЫЙ РЕГУЛЯРНЫЙ ПЛАТЁЖ» / «ИЗМЕНИТЬ ПЛАТЁЖ»
 // (Без полей «День месяца» и «Напоминать за дней» в UI)

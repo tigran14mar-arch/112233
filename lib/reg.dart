@@ -8,12 +8,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // Импортируем главный файл для перехода на RitmDeviceShell
 import 'main.dart';
+import 'app_config.dart';
 
 // ============================================================================
 // ХРАНИЛИЩЕ СЕССИИ (Сохранение в памяти устройства и авто-вход)
 // ============================================================================
 abstract final class RitmSession {
-  static const String apiBaseUrl = 'http://94.228.173.229:8000';
+  static String get apiBaseUrl => AppConfig.apiBaseUrl;
 
   static const String _keyToken = 'ritm_access_token';
   static const String _keyUserJson = 'ritm_user_json';
@@ -45,7 +46,9 @@ abstract final class RitmSession {
       final prefs = await SharedPreferences.getInstance();
       accessToken = prefs.getString(_keyToken);
       savedUsername = prefs.getString(_keyUsername);
-      savedPassword = prefs.getString(_keyPassword);
+      // Пароль остаётся только в памяти текущей вкладки, не в localStorage.
+      savedPassword = null;
+      await prefs.remove(_keyPassword);
 
       final rawUser = prefs.getString(_keyUserJson);
       if (rawUser != null && rawUser.isNotEmpty) {
@@ -85,9 +88,7 @@ abstract final class RitmSession {
       if (savedUsername != null) {
         await prefs.setString(_keyUsername, savedUsername!);
       }
-      if (savedPassword != null) {
-        await prefs.setString(_keyPassword, savedPassword!);
-      }
+      await prefs.remove(_keyPassword);
     } catch (e) {
       debugPrint('Ошибка сохранения сессии в память: $e');
     }
@@ -229,7 +230,7 @@ class _LoginContent extends StatefulWidget {
 }
 
 class _LoginContentState extends State<_LoginContent> {
-  static const String _apiBaseUrl = RitmSession.apiBaseUrl;
+  static String get _apiBaseUrl => RitmSession.apiBaseUrl;
 
   final TextEditingController _loginCtrl = TextEditingController();
   final TextEditingController _pwdCtrl = TextEditingController();
@@ -803,7 +804,8 @@ class _IntroSection extends StatelessWidget {
             children: [
               _GreenDot(),
               SizedBox(width: 8),
-              Text(
+              Expanded(
+                child: Text(
                 'ВАШЕ ПРОСТРАНСТВО КОМАНДЫ',
                 style: TextStyle(
                   color: RitmRegColors.accentInk,
@@ -811,6 +813,7 @@ class _IntroSection extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.7,
                 ),
+              ),
               ),
             ],
           ),

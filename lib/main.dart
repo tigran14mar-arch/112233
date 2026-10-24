@@ -9,6 +9,7 @@ import 'pay.dart';
 import 'history.dart';
 import 'profile.dart';
 import 'reg.dart';
+import 'app_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,7 +61,7 @@ class ApiRequestException implements Exception {
 
 /// Единый сервис HTTP-запросов к вашему серверу FastAPI
 abstract final class RitmApiService {
-  static const String baseUrl = 'http://94.228.173.229:8000';
+  static String get baseUrl => AppConfig.apiBaseUrl;
   static const Duration _timeout = Duration(seconds: 10);
 
   /// Токен сессии (синхронизирован с локальным хранилищем RitmSession)
@@ -115,14 +116,15 @@ abstract final class RitmApiService {
   static Future<void> ensureAuthorized() async {
     if (accessToken != null && accessToken!.isNotEmpty) return;
 
-    final loginToUse = (RitmSession.savedUsername != null &&
-        RitmSession.savedUsername!.isNotEmpty)
-        ? RitmSession.savedUsername!
-        : 'admin';
-    final passwordToUse = (RitmSession.savedPassword != null &&
-        RitmSession.savedPassword!.isNotEmpty)
-        ? RitmSession.savedPassword!
-        : '13254768';
+    final loginToUse = RitmSession.savedUsername;
+    final passwordToUse = RitmSession.savedPassword;
+    if (loginToUse == null || loginToUse.isEmpty ||
+        passwordToUse == null || passwordToUse.isEmpty) {
+      throw const ApiRequestException(
+        statusCode: 401,
+        detail: 'Сессия истекла. Выйдите из аккаунта и войдите снова.',
+      );
+    }
 
     try {
       final uri = Uri.parse('$baseUrl/api/v1/auth/login');

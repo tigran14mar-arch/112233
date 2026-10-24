@@ -1,30 +1,44 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hacaton_plat/main.dart';
+import 'package:hacaton_plat/reg.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    await RitmSession.clearSession();
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  for (final size in [const Size(320, 640), const Size(390, 844), const Size(1280, 800)]) {
+    testWidgets('Login fits viewport $size without layout errors', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(const RitmApp());
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('Войти'), findsOneWidget);
+      expect(find.text('Логин'), findsOneWidget);
+      expect(find.text('Пароль'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+  test('Missing credentials cannot silently log in as administrator', () async {
+    await expectLater(RitmApiService.ensureAuthorized(), throwsA(isA<ApiRequestException>()));
+    expect(RitmSession.accessToken, isNull);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  test('Password is not persisted and legacy stored password is removed', () async {
+    await RitmSession.saveSession(token: 'test-token', user: {'username': 'demo'},
+        username: 'demo', password: 'test-only-password');
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('ritm_saved_password'), isNull);
+    await prefs.setString('ritm_saved_password', 'legacy-test-password');
+    await RitmSession.restoreFromStorage();
+    expect(RitmSession.savedPassword, isNull);
+    expect(prefs.getString('ritm_saved_password'), isNull);
+    expect(RitmSession.accessToken, 'test-token');
   });
 }
